@@ -51,6 +51,19 @@ let PostResolvers = class PostResolvers {
             return post;
         });
     }
+    deletePost(id, { em }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const post = yield em.nativeDelete(Post_1.Post, {
+                    id: id,
+                });
+            }
+            catch (error) {
+                return false;
+            }
+            return true;
+        });
+    }
 };
 __decorate([
     type_graphql_1.Query(() => [Post_1.Post], { nullable: true }),
@@ -83,6 +96,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, String, Object]),
     __metadata("design:returntype", Promise)
 ], PostResolvers.prototype, "updatePost", null);
+__decorate([
+    type_graphql_1.Mutation(() => Boolean),
+    __param(0, type_graphql_1.Arg("id")),
+    __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], PostResolvers.prototype, "deletePost", null);
 PostResolvers = __decorate([
     type_graphql_1.Resolver()
 ], PostResolvers);
