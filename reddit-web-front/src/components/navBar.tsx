@@ -1,16 +1,53 @@
 import React from "react";
-import { Box, Link } from "@chakra-ui/core";
+import { Box, Button, Flex, Link } from "@chakra-ui/core";
+import NextLink from "next/link";
+import { useLogoutMutation, useMeQuery } from "../generated/graphql";
 
 interface NavBarProps {}
 
 export const NavBar: React.FC<NavBarProps> = ({}) => {
+  const [{ fetching: fetchLogout }, logout] = useLogoutMutation();
+  const [{ data, fetching }] = useMeQuery();
+  let body = null;
+
+  if (fetching) {
+    body = null;
+  } else if (!data?.me) {
+    body = (
+      <>
+        <NextLink href="/login">
+          <Link color="white" mr={2}>
+            login
+          </Link>
+        </NextLink>
+        <NextLink href="/register">
+          <Link color="white">register</Link>
+        </NextLink>
+      </>
+    );
+  } else {
+    body = (
+      <Flex>
+        <Box>{data.me.username}</Box>
+        <Box ml={5}>
+          <Button
+            onClick={() => {
+              logout();
+            }}
+            isDisabled={fetchLogout}
+            variant="link"
+          >
+            logout
+          </Button>
+        </Box>
+      </Flex>
+    );
+  }
+
   return (
-    <Box bg="tomato" p={4} ml={"auto"}>
-      <Box ml={"auto"}>
-        <Link mr={2}>login</Link>
-        <Link>register</Link>
-      </Box>
-    </Box>
+    <Flex bg="tomato" p={4}>
+      <Box ml={"auto"}>{body}</Box>
+    </Flex>
   );
 };
 

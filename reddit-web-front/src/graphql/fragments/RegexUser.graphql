@@ -1,0 +1,4 @@
+fragment RegexUser on User {
+  id
+  username
+}
