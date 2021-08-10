@@ -38,6 +38,10 @@ __decorate([
 __decorate([
     type_graphql_1.Field(),
     __metadata("design:type", String)
+], UsernamePasswordInput.prototype, "email", void 0);
+__decorate([
+    type_graphql_1.Field(),
+    __metadata("design:type", String)
 ], UsernamePasswordInput.prototype, "password", void 0);
 UsernamePasswordInput = __decorate([
     type_graphql_1.InputType()
@@ -69,6 +73,14 @@ UserResponse = __decorate([
     type_graphql_1.ObjectType()
 ], UserResponse);
 let UserResolvers = class UserResolvers {
+    forgotPassword(email, { em }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const person = yield em.findOne(User_1.User, { email });
+            if (!person) {
+            }
+            return true;
+        });
+    }
     me({ req, em }) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!req.session.userId) {
@@ -86,6 +98,16 @@ let UserResolvers = class UserResolvers {
                         {
                             field: "username",
                             message: "short username field length",
+                        },
+                    ],
+                };
+            }
+            if (!input.email.includes("@")) {
+                return {
+                    errors: [
+                        {
+                            field: "email",
+                            message: "invalid email",
                         },
                     ],
                 };
@@ -108,6 +130,7 @@ let UserResolvers = class UserResolvers {
                     .getKnexQuery()
                     .insert({
                     username: input.username,
+                    email: input.email,
                     password: hashedPassword,
                     created_at: new Date(),
                     updated_at: new Date(),
@@ -115,6 +138,7 @@ let UserResolvers = class UserResolvers {
                     .returning("*");
                 user = {
                     id: result.id,
+                    email: result.email,
                     username: result.username,
                     password: result.password,
                     createdAt: result.created_at,
@@ -138,9 +162,9 @@ let UserResolvers = class UserResolvers {
             };
         });
     }
-    login(input, { em, req }) {
+    login(usernameOrEmail, password, { em, req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield em.findOne(User_1.User, { username: input.username });
+            const user = yield em.findOne(User_1.User, { username: usernameOrEmail });
             if (!user) {
                 return {
                     errors: [
@@ -183,6 +207,13 @@ let UserResolvers = class UserResolvers {
     }
 };
 __decorate([
+    type_graphql_1.Mutation(() => Boolean),
+    __param(0, type_graphql_1.Arg("email")), __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], UserResolvers.prototype, "forgotPassword", null);
+__decorate([
     type_graphql_1.Query(() => User_1.User, { nullable: true }),
     __param(0, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
@@ -199,10 +230,11 @@ __decorate([
 ], UserResolvers.prototype, "register", null);
 __decorate([
     type_graphql_1.Mutation(() => UserResponse),
-    __param(0, type_graphql_1.Arg("input")),
-    __param(1, type_graphql_1.Ctx()),
+    __param(0, type_graphql_1.Arg("usernameOrEmail")),
+    __param(1, type_graphql_1.Arg("password")),
+    __param(2, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [UsernamePasswordInput, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolvers.prototype, "login", null);
 __decorate([

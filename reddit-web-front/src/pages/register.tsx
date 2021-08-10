@@ -7,6 +7,8 @@ import InputField from "../components/inputField";
 import { Box, Button } from "@chakra-ui/core";
 import { useRegisterMutation } from "../generated/graphql";
 import { toErrorMap } from "../utils/toErrorMap";
+import { withUrqlClient } from "next-urql";
+import { urqlClient } from "../utils/createUrqlProvider";
 
 interface registerProps {}
 const Register: React.FC<registerProps> = ({}) => {
@@ -19,7 +21,7 @@ const Register: React.FC<registerProps> = ({}) => {
         initialValues={{ username: "", password: "" }}
         onSubmit={async (values, { setErrors }) => {
           const response = await register(values);
-          console.log(response.data?.register);
+
           if (response.data?.register.errors) {
             setErrors(toErrorMap(response.data.register.errors));
           } else if (response.data?.register.user) {
@@ -52,4 +54,4 @@ const Register: React.FC<registerProps> = ({}) => {
   );
 };
 
-export default Register;
+export default withUrqlClient(urqlClient)(Register);

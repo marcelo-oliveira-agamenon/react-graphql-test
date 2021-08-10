@@ -50,6 +50,7 @@ export class PostResolvers {
       const post = await em.nativeDelete(Post, {
         id: id,
       });
+      console.log(post);
     } catch (error) {
       return false;
     }

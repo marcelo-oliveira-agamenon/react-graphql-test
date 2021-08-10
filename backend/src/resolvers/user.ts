@@ -19,6 +19,8 @@ class UsernamePasswordInput {
   @Field()
   username: string;
   @Field()
+  email: string;
+  @Field()
   password: string;
 }
 
@@ -42,6 +44,16 @@ class UserResponse {
 
 @Resolver()
 export class UserResolvers {
+  @Mutation(() => Boolean)
+  async forgotPassword(@Arg("email") email: string, @Ctx() { em }: MyContext) {
+    const person = await em.findOne(User, { email });
+
+    if (!person) {
+    }
+
+    return true;
+  }
+
   @Query(() => User, { nullable: true })
   async me(@Ctx() { req, em }: MyContext) {
     if (!req.session.userId) {
@@ -67,6 +79,16 @@ export class UserResolvers {
         ],
       };
     }
+    if (!input.email.includes("@")) {
+      return {
+        errors: [
+          {
+            field: "email",
+            message: "invalid email",
+          },
+        ],
+      };
+    }
     if (input.password.length <= 2) {
       return {
         errors: [
@@ -87,6 +109,7 @@ export class UserResolvers {
         .getKnexQuery()
         .insert({
           username: input.username,
+          email: input.email,
           password: hashedPassword,
           created_at: new Date(),
           updated_at: new Date(),
@@ -94,6 +117,7 @@ export class UserResolvers {
         .returning("*");
       user = {
         id: result.id,
+        email: result.email,
         username: result.username,
         password: result.password,
         createdAt: result.created_at,
@@ -120,10 +144,11 @@ export class UserResolvers {
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg("input") input: UsernamePasswordInput,
+    @Arg("usernameOrEmail") usernameOrEmail: string,
+    @Arg("password") password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: input.username });
+    const user = await em.findOne(User, { username: usernameOrEmail });
     if (!user) {
       return {
         errors: [

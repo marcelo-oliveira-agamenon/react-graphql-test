@@ -57,6 +57,7 @@ let PostResolvers = class PostResolvers {
                 const post = yield em.nativeDelete(Post_1.Post, {
                     id: id,
                 });
+                console.log(post);
             }
             catch (error) {
                 return false;
