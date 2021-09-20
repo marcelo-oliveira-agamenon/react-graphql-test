@@ -4,25 +4,18 @@ import {
   Ctx,
   Arg,
   Mutation,
-  InputType,
   Field,
   ObjectType,
   Query,
 } from "type-graphql";
+import { v4 } from "uuid";
 import { User } from "../entities/User";
 import argon from "argon2";
 import { EntityManager } from "@mikro-orm/postgresql";
-import { COOKIE_NAME } from "../constants";
-
-@InputType()
-class UsernamePasswordInput {
-  @Field()
-  username: string;
-  @Field()
-  email: string;
-  @Field()
-  password: string;
-}
+import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
+import { UsernamePasswordInput } from "./UsernamePasswordInput";
+import { validateRegister } from "../utils/validateRegister";
+import { sendEmail } from "../utils/sendEmail";
 
 @ObjectType()
 class FieldError {
@@ -45,11 +38,29 @@ class UserResponse {
 @Resolver()
 export class UserResolvers {
   @Mutation(() => Boolean)
-  async forgotPassword(@Arg("email") email: string, @Ctx() { em }: MyContext) {
+  async forgotPassword(
+    @Arg("email") email: string,
+    @Ctx() { em, redis }: MyContext
+  ) {
     const person = await em.findOne(User, { email });
 
     if (!person) {
+      return true;
     }
+
+    const token = v4();
+
+    await redis.set(
+      FORGET_PASSWORD_PREFIX + token,
+      person.id,
+      "ex",
+      1000 * 60 * 60 * 24
+    );
+
+    await sendEmail(
+      email,
+      `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+    );
 
     return true;
   }
@@ -69,35 +80,10 @@ export class UserResolvers {
     @Arg("input") input: UsernamePasswordInput,
     @Ctx() { em }: MyContext
   ): Promise<UserResponse> {
-    if (input.username.length <= 2) {
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "short username field length",
-          },
-        ],
-      };
-    }
-    if (!input.email.includes("@")) {
-      return {
-        errors: [
-          {
-            field: "email",
-            message: "invalid email",
-          },
-        ],
-      };
-    }
-    if (input.password.length <= 2) {
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "short password field length",
-          },
-        ],
-      };
+    const errors = validateRegister(input);
+
+    if (errors) {
+      return { errors };
     }
 
     const hashedPassword = await argon.hash(input.password);
@@ -148,18 +134,23 @@ export class UserResolvers {
     @Arg("password") password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: usernameOrEmail });
+    const user = await em.findOne(
+      User,
+      usernameOrEmail.includes("@")
+        ? { email: usernameOrEmail }
+        : { username: usernameOrEmail }
+    );
     if (!user) {
       return {
         errors: [
           {
-            field: "username",
+            field: "usernameOrEmail",
             message: "Username doesn't exist",
           },
         ],
       };
     }
-    const passwordCompare = await argon.verify(user.password, input.password);
+    const passwordCompare = await argon.verify(user.password, password);
     if (!passwordCompare) {
       return {
         errors: [
