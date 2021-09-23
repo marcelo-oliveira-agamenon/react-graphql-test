@@ -1,0 +1,8 @@
+fragment RegularBody on UserResponse {
+  errors {
+    ...RegularError
+  }
+  user {
+    ...RegularUser
+  }
+}
